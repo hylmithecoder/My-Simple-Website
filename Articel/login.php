@@ -1,31 +1,32 @@
 <?php
 include "db.php";
 session_start();
-if (isset($_POST['Login'])){
-  $USERNAME = $_POST['username'];
-  $KEY = $_POST['password'];
 
-  $query = "SELECT * FROM account WHERE username = '$USERNAME'";
-  $result = mysqli_query($conn,$query);
+if (isset($_POST['Login'])) {
+    $USERNAME = mysqli_real_escape_string($conn, $_POST['username']);
+    $PASSWORD = $_POST['password'];
 
-  if (mysqli_num_rows($result) === 1){
-    $row = mysqli_fetch_assoc($result);
-    if ($KEY === $row['password']){
-        session_start();
-        $_SESSION['user'] = $row['username'];
-        $_SESSION['admin'] = true;
-        $_SESSION['admin'] = $row['password'];
-        echo "<script>alert('Selamat datang $row[username]');document.location.href='admin/index.php?user=$row[username]';</script>";
-        
+    $query = "SELECT * FROM account WHERE username = ?";
+    $stmt = mysqli_prepare($conn, $query);
+    mysqli_stmt_bind_param($stmt, "s", $USERNAME);
+    mysqli_stmt_execute($stmt);
+    $result = mysqli_stmt_get_result($stmt);
+
+    if (mysqli_num_rows($result) === 1) {
+        $row = mysqli_fetch_assoc($result);
+        // Gunakan password_verify untuk membandingkan password
+        if (password_verify($PASSWORD, $row['password'])) {
+            $_SESSION['user'] = $row['username'];
+            $_SESSION['admin'] = true;
+            // Jangan simpan password di session
+            echo "<script>alert('Selamat datang " . htmlspecialchars($row['username']) . "');document.location.href='admin/index.php?user=" . urlencode($row['username']) . "';</script>";
+        } else {
+            echo "<script>alert('Password salah!');</script>";
+        }
     } else {
-      echo "<script>alert('Password salah !!!');</script>";
+        echo "<script>alert('Username tidak ditemukan!');</script>";
     }
-  } else {
-    echo "<script>alert('Username tidak ditemukan !!!');</script>";
-  }
 }
-// session_save_path($_SESSION['admin']);
-// session_set_save_handler("session_save_path");
 ?>
 <!DOCTYPE html>
 <html lang="en">
